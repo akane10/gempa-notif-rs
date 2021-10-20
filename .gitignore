@@ -2,3 +2,4 @@
 vapid_private.pem
 vapid_public.pem
 .env
+last_time.txt
