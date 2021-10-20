@@ -1,0 +1,4 @@
+/target
+vapid_private.pem
+vapid_public.pem
+.env

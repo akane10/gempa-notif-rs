@@ -1,0 +1,15 @@
+[package]
+name = "gempa-notif"
+version = "0.1.0"
+edition = "2018"
+
+# See more keys and their definitions at https://doc.rust-lang.org/cargo/reference/manifest.html
+
+[dependencies]
+web-push = { git = "https://github.com/akane10/rust-web-push" }
+tokio = { version = "1.12", features = ["full"] }
+base64 = "0.13"
+log = "0.4"
+pretty_env_logger = "0.3"
+isahc = "1.5"
+dotenv = "0.15"
