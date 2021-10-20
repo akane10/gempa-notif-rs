@@ -1,5 +1,6 @@
 use bmkgw::gempa::{self, Gempa, Url};
 use dotenv;
+use std::{fs, path::Path};
 use tokio::time;
 
 pub mod push;
@@ -18,7 +19,13 @@ fn set_message(data: &Gempa) -> String {
 async fn main() -> Result<(), Box<dyn std::error::Error + Send + Sync + 'static>> {
     dotenv::dotenv().ok();
 
-    let mut last_time = String::new();
+    let filename = Path::new(env!("CARGO_MANIFEST_DIR")).join("last_time.txt");
+    let time = fs::read_to_string(&filename);
+
+    let mut last_time = match time {
+        Ok(t) => t,
+        _ => String::new(),
+    };
 
     let mut interval = time::interval(time::Duration::from_secs(60));
     loop {
@@ -33,6 +40,7 @@ async fn main() -> Result<(), Box<dyn std::error::Error + Send + Sync + 'static>
             if t != last_time {
                 let msg = set_message(&data[0]);
                 push::notif(&msg).await?;
+                fs::write(&filename, &t)?;
                 last_time = t;
             }
         }
