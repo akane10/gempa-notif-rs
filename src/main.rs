@@ -30,7 +30,7 @@ async fn main() -> Result<(), Box<dyn std::error::Error + Send + Sync + 'static>
     let mut interval = time::interval(time::Duration::from_secs(60));
     loop {
         interval.tick().await;
-        let data: Vec<Gempa> = gempa::get_data(Url::GempaTerkini).await?;
+        let data: Vec<Gempa> = gempa::get_data(Url::Autogempa).await?;
         let time: Option<String> = match data.len() {
             n if n > 0 => data[0].jam.clone(),
             _ => None,
