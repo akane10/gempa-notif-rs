@@ -45,7 +45,9 @@ pub async fn notif(msg: &str) -> Result<(), Box<dyn std::error::Error + Send + S
 
                 match response {
                     Err(e) => match e {
-                        WebPushError::EndpointNotValid => {
+                        err if err == WebPushError::EndpointNotValid
+                            || err == WebPushError::Unauthorized =>
+                        {
                             let res: Result<(), RedisError> = con.del(d.auth);
                             match res {
                                 _ => (),
