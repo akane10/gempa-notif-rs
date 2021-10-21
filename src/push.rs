@@ -1,31 +1,67 @@
-use pretty_env_logger;
+use redis::Commands;
+use redis::{self, RedisError};
+use serde::{Deserialize, Serialize};
 use std::fs::File;
 use web_push::*;
 
-// TODO:
-//  - get data from redis
+fn conn_redis() -> redis::RedisResult<redis::Connection> {
+    let client = redis::Client::open("redis://127.0.0.1/")?;
+    let con = client.get_connection()?;
+    Ok(con)
+}
+
+#[derive(Debug, Clone, Serialize, Deserialize)]
+struct Data {
+    auth: String,
+    p256dh: String,
+    endpoint: String,
+}
+
 pub async fn notif(msg: &str) -> Result<(), Box<dyn std::error::Error + Send + Sync + 'static>> {
-    pretty_env_logger::init();
+    let mut con = conn_redis()?;
+    let keys: Vec<String> = con.keys("*")?;
 
-    let endpoint = &dotenv::var("ENDPOINT_EXAMPLE").expect("Missing example endpoint");
-    let p256dh = &dotenv::var("P256DH_EXAMPLE").expect("Missing example p256dh");
-    let auth = &dotenv::var("AUTH_EXAMPLE").expect("Missing example auth");
-    let mailto = &dotenv::var("MAILTO").expect("Missing mailto");
+    for k in keys.into_iter() {
+        let val: String = con.get(k)?;
+        let data: Result<Data, _> = serde_json::from_str(&val);
+        match data {
+            Ok(d) => {
+                let mailto = &dotenv::var("MAILTO").expect("Missing mailto");
 
-    let subscription_info = SubscriptionInfo::new(endpoint, &p256dh, &auth);
+                let subscription_info = SubscriptionInfo::new(d.endpoint, d.p256dh, d.auth.clone());
 
-    let file = File::open("vapid_private.pem")?;
-    let mut sig_builder = VapidSignatureBuilder::from_pem(file, &subscription_info)?;
-    sig_builder.add_claim("sub", mailto.as_str());
-    let signature = sig_builder.build()?;
+                let file = File::open("vapid_private.pem")?;
+                let mut sig_builder = VapidSignatureBuilder::from_pem(file, &subscription_info)?;
+                sig_builder.add_claim("sub", mailto.as_str());
+                let signature = sig_builder.build()?;
 
-    let mut builder = WebPushMessageBuilder::new(&subscription_info)?;
-    builder.set_vapid_signature(signature);
-    builder.set_payload(ContentEncoding::Aes128Gcm, msg.as_bytes());
+                let mut builder = WebPushMessageBuilder::new(&subscription_info)?;
+                builder.set_vapid_signature(signature);
+                builder.set_payload(ContentEncoding::Aes128Gcm, msg.as_bytes());
 
-    let message = builder.build()?;
-    let client = WebPushClient::new()?;
-    let response = client.send(message).await?;
-    println!("Sent: {:?}", response);
+                let message = builder.build()?;
+                let client = WebPushClient::new()?;
+                let response = client.send(message).await;
+
+                match response {
+                    Err(e) => match e {
+                        WebPushError::EndpointNotValid => {
+                            let res: Result<(), RedisError> = con.del(d.auth);
+                            match res {
+                                _ => (),
+                            }
+                        }
+                        _ => {
+                            println!("failed {:#?}", e);
+                        }
+                    },
+                    _ => {
+                        println!("sent {}", d.auth);
+                    }
+                }
+            }
+            _ => (),
+        }
+    }
     Ok(())
 }

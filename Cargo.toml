@@ -14,4 +14,7 @@ pretty_env_logger = "0.3"
 isahc = "1.5"
 dotenv = "0.15"
 bmkgw = { git = "https://gitlab.com/akane10/bmkgw" }
+redis = "0.20"
+serde_json = { version = "1.0.64", features = ["preserve_order"] }
+serde = { version = "1.0.125", features = [ "derive" ] }
 
