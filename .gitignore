@@ -1,5 +1,5 @@
 /target
-vapid_private.pem
-vapid_public.pem
+private_key.pem
+public_key.pem
 .env
 last_time.txt
