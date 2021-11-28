@@ -30,7 +30,7 @@ pub async fn notif(msg: &str) -> Result<(), Box<dyn std::error::Error + Send + S
 
                 let subscription_info = SubscriptionInfo::new(d.endpoint, d.p256dh, d.auth.clone());
 
-                let file = File::open("vapid_private.pem")?;
+                let file = File::open("private_key.pem")?;
                 let mut sig_builder = VapidSignatureBuilder::from_pem(file, &subscription_info)?;
                 sig_builder.add_claim("sub", mailto.as_str());
                 let signature = sig_builder.build()?;
