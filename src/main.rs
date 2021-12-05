@@ -1,4 +1,7 @@
-use bmkgw::gempa::{self, Gempa, Url};
+use bmkgw::{
+    gempa::{self, Gempa, Url},
+    Error,
+};
 use dotenv;
 use std::{fs, path::Path};
 use tokio::time;
@@ -25,19 +28,29 @@ async fn main() -> Result<(), Box<dyn std::error::Error + Send + Sync + 'static>
     let mut interval = time::interval(time::Duration::from_secs(60));
     loop {
         interval.tick().await;
-        let data: Vec<Gempa> = gempa::get_data(Url::Autogempa).await?;
-        let time: Option<String> = match data.len() {
-            n if n > 0 => data[0].jam.clone(),
-            _ => None,
-        };
+        let data: Result<Vec<Gempa>, Error> = gempa::get_data(Url::Autogempa).await;
+        match data {
+            Ok(data) => {
+                let time: Option<String> = match data.len() {
+                    n if n > 0 => data[0].jam.clone(),
+                    _ => None,
+                };
 
-        if let Some(t) = time {
-            if t != last_time {
-                let msg = set_message(&data[0]);
-                push::notif(&msg).await?;
-                fs::write(&filename, &t)?;
-                last_time = t;
+                if let Some(t) = time {
+                    if t != last_time {
+                        let msg = set_message(&data[0]);
+                        let pushed = push::notif(&msg).await;
+                        match pushed {
+                            Ok(_) => {
+                                fs::write(&filename, &t)?;
+                                last_time = t;
+                            }
+                            _ => (),
+                        }
+                    }
+                }
             }
+            Err(e) => println!("failed to get gempa data: {}", e),
         }
     }
 }
