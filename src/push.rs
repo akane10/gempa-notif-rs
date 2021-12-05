@@ -54,7 +54,7 @@ pub async fn notif(msg: &str) -> Result<(), Box<dyn std::error::Error + Send + S
                             }
                         }
                         _ => {
-                            println!("failed {:#?}", e);
+                            println!("{} failed {:#?}", d.auth, e);
                         }
                     },
                     _ => {
