@@ -39,13 +39,10 @@ async fn main() -> Result<(), Box<dyn std::error::Error + Send + Sync + 'static>
                 if let Some(t) = time {
                     if t != last_time {
                         let msg = set_message(&data[0]);
-                        let pushed = push::notif(&msg).await;
-                        match pushed {
-                            Ok(_) => {
-                                fs::write(&filename, &t)?;
+                        if let Ok(_) = push::notif(&msg).await {
+                            if let Ok(_) = fs::write(&filename, &t) {
                                 last_time = t;
                             }
-                            _ => (),
                         }
                     }
                 }
